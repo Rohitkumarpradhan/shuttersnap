@@ -10,11 +10,9 @@ export async function POST(request: Request) {
         }
 
         // High-end Discord Embed Styling
-        // High-end Discord Embed Styling
         const discordPayload = {
             content: "🚨 **New Portfolio Submission!**",
             username: "SHUTTERSNAP Portal",
-            // 🔥 Fixed: Put a real HTTPS link back in here!
             avatar_url: "https://res.cloudinary.com/dasntfhtt/image/upload/v1782670020/DSC_0538_vpxwk1.jpg",
             embeds: [
                 {
@@ -30,20 +28,22 @@ export async function POST(request: Request) {
                 }
             ]
         };
+
         const discordResponse = await fetch(webhookUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(discordPayload),
         });
 
-        // 🔥 NEW: Force the terminal to tell us Discord's exact words!
-        const responseText = await discordResponse.text();
-        console.log("DISCORD SERVER ACTUALLY SAID:", discordResponse.status, responseText);
+        // Basic error catch just in case Discord goes offline
+        if (!discordResponse.ok) {
+            throw new Error(`Discord API responded with status: ${discordResponse.status}`);
+        }
 
         return NextResponse.json({ success: true });
+
     } catch (error) {
         console.error("Discord Notify Error:", error);
         return NextResponse.json({ error: "Failed to fire webhook" }, { status: 500 });
     }
 }
-
