@@ -8,6 +8,11 @@ import { useTheme } from "../ThemeProvider";
 export default function Feedback() {
     const { darkMode } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const [popup, setPopup] = useState({
+        show: false,
+        message: "",
+        type: "info" as "success" | "error" | "info",
+    });
 
     const [form, setForm] = useState({
         name: "",
@@ -22,6 +27,23 @@ export default function Feedback() {
     useEffect(() => {
         setMounted(true);
     }, []);
+    const showPopup = (
+        message: string,
+        type: "success" | "error" | "info" = "info"
+    ) => {
+        setPopup({
+            show: true,
+            message,
+            type,
+        });
+
+        setTimeout(() => {
+            setPopup((prev) => ({
+                ...prev,
+                show: false,
+            }));
+        }, 3000);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,17 +53,17 @@ export default function Feedback() {
 
         // Validation
         if (!form.name.trim()) {
-            alert("Please enter your name");
+            showPopup("Please enter your name", "error");
             return;
         }
         if (!form.email.trim()) {
-            alert("Please enter your email");
+            showPopup("Please enter your email", "error");
             return;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(form.email)) {
-            alert("Please enter a valid email address");
+            showPopup("Please enter a valid email address", "error");
             return;
         }
        
@@ -54,23 +76,23 @@ export default function Feedback() {
         const looksLikeGmail = domain.includes("gm") || domain.includes("gai") || domain.includes("gmal");
 
         if (looksLikeGmail && domain !== "gmail.com") {
-            alert(`Did you mean @gmail.com? (You typed @${domain})`);
+            showPopup(`Did you mean @gmail.com? (You typed @${domain})`, "info");
             return;
         }
 
         if (!form.message.trim()) {
-            alert("Please enter a message");
+            showPopup("Please enter a message", "error");
             return;
         }
         if (form.message.length < 10) {
-            alert("Message must be at least 10 characters");
+            showPopup("Message must be at least 10 characters", "error");
             return;
         }
 
         // Rate Limiting (1 minute)
         const lastSubmit = localStorage.getItem("lastSubmit");
         if (lastSubmit && Date.now() - Number(lastSubmit) < 60000) {
-            alert("Please wait 1 minute before sending another feedback.");
+            showPopup("Please wait 1 minute before sending another feedback.", "info");
             return;
         }
 
@@ -90,8 +112,7 @@ export default function Feedback() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(form),
             }).catch((err) => console.error("Discord dispatch glitch:", err));
-
-            alert("✅ Feedback submitted successfully!🥳🎉");
+            showPopup("✅Feedback submitted successfully! 🎉", "success");
 
             setForm({
                 name: "",
@@ -101,12 +122,13 @@ export default function Feedback() {
         
         } catch (error) {
             console.error("Firebase Error:", error);
-            alert("❌ Error submitting feedback ☹️");
+            showPopup("❌ Error submitting feedback. Please try again.", "error");
         } finally {
             setLoading(false);
         }
     };
 
+  
     return (
         <main
             className={`min-h-screen transition-colors duration-500 ${darkMode ? "bg-black text-white" : "bg-zinc-50 text-black"
@@ -238,6 +260,21 @@ export default function Feedback() {
                         )}
                     </button>
                 </form>
+                {
+                    popup.show && (
+                        <div
+                            className={`fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-6 py-4 rounded-xl shadow-2xl text-white transition-all duration-300
+        ${popup.type === "success"
+                                    ? "bg-green-600"
+                                    : popup.type === "error"
+                                        ? "bg-red-600"
+                                        : "bg-zinc-900"
+                                }`}
+                        >
+                            {popup.message}
+                        </div>
+                    )
+                }
             </section>
         </main>
     );
