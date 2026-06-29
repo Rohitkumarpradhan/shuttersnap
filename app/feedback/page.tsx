@@ -44,6 +44,19 @@ export default function Feedback() {
             alert("Please enter a valid email address");
             return;
         }
+       
+        // 2. 🔥 The Domain Sanitizer
+        const emailParts = form.email.split("@");
+        const domain = emailParts[1]?.toLowerCase();
+
+        // If the domain contains "gm", "ya", "out", or "hot", but isn't spelled EXACTLY right:
+        const majorProviders = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com"];
+        const looksLikeGmail = domain.includes("gm") || domain.includes("gai") || domain.includes("gmal");
+
+        if (looksLikeGmail && domain !== "gmail.com") {
+            alert(`Did you mean @gmail.com? (You typed @${domain})`);
+            return;
+        }
 
         if (!form.message.trim()) {
             alert("Please enter a message");
@@ -71,16 +84,24 @@ export default function Feedback() {
 
             localStorage.setItem("lastSubmit", Date.now().toString());
 
-            alert("✅ Feedback submitted successfully!");
+            // 🔥 NEW: Ping our Discord middleman silently in the background!
+            fetch("/api/notify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(form),
+            }).catch((err) => console.error("Discord dispatch glitch:", err));
+
+            alert("✅ Feedback submitted successfully!🥳🎉");
 
             setForm({
                 name: "",
                 email: "",
                 message: "",
             });
+        
         } catch (error) {
             console.error("Firebase Error:", error);
-            alert("❌ Error submitting feedback");
+            alert("❌ Error submitting feedback ☹️");
         } finally {
             setLoading(false);
         }
@@ -179,6 +200,7 @@ export default function Feedback() {
                     <div className="space-y-1.5">
                         <textarea
                             placeholder="Your Message"
+                            maxLength={1000} // <-- Forces the keyboard to physically stop at 1,000 chars
                             value={form.message}
                             onChange={(e) => setForm({ ...form, message: e.target.value })}
                             className={`w-full p-4 border rounded-xl outline-none h-40 resize-none transition-all duration-300 focus:ring-4 ${darkMode
